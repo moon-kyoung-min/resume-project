@@ -1,5 +1,8 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import jwtwebToken from "jsonwebtoken";
+import jwtValidate from "../middleware/jwt-auth-middleware.js";
+
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -18,7 +21,7 @@ router.post('/sign-up', async (req, res) => {
     if (password !== passwordconfirm) {
         return res.status(400).json({ success: false, message: '비밀번호와 비밀번호확인이 일치하지 않습니다.' })
     }
-    if (password < 6) {
+    if (password.length < 6) {
         return res.status(400).json({ success: false, message: '비밀번호는 6자 이상입력해야합니다.' })
     }
     if (!name) {
@@ -27,9 +30,9 @@ router.post('/sign-up', async (req, res) => {
 
     const sameemail = await prisma.user.findFirst({
         where: {
-            email: email
+            email: email,
         }
-    })
+    });
     if (sameemail) {
         return res.status(400).json({ success: false, message: '이미 사용중인 이메일입니다.' })
     }
@@ -48,5 +51,45 @@ router.post('/sign-up', async (req, res) => {
         massage: '회원가입에 성공하였습니다.'
     })
 });
+
+router.post('/sign-in', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, message: '이메일을 입력해주세요' })
+    }
+    if (!password) {
+        return res.status(400).json({ success: false, message: '비밀번호를 입력해주세요' })
+    }
+    const user = await prisma.user.findFirst({
+        where: {
+            email: email,
+            password: password,
+        }
+    });
+    // 동작은됬는데 옳지않은코드라함 왜지.. password도 노출되면 안좋으니까 지우래 그럼 비밀번호 확인은 어떻게함
+    // if (password !== (prisma.user.password)) {
+    //     return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' })
+    // }
+    if (!user || password !== user.password) {
+        return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' })
+    }
+    if (!user) {
+        return res.status(401).json({ success: false, message: '일치하는 회원정보가 없습니다.' })
+    }
+
+    const accessToken = jwtwebToken.sign({ userId: user.userId }, 'resume@#', { expiresIn: '12h' })
+    return res.json({
+        accessToken,
+    })
+})
+
+router.get('/myacount', jwtValidate, (req, res) => {
+    const user = res.locals.user;
+    return res.json({
+        email: user.email,
+        name: user.name,
+    })
+
+})
 
 export default router;
