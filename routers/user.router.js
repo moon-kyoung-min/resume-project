@@ -66,13 +66,13 @@ router.post('/sign-in', async (req, res) => {
             password: password,
         }
     });
-    // 동작은됬는데 옳지않은코드라함 왜지.. password도 노출되면 안좋으니까 지우래 그럼 비밀번호 확인은 어떻게함
-    // if (password !== (prisma.user.password)) {
-    //     return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' })
-    // }
-    if (!user || password !== user.password) {
+
+    if (password !== (prisma.user.password)) {
         return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' })
     }
+    // if (!user || password !== user.password) {
+    //     return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' })
+    // }
     if (!user) {
         return res.status(401).json({ success: false, message: '일치하는 회원정보가 없습니다.' })
     }
